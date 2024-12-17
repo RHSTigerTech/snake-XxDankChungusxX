@@ -1,4 +1,4 @@
-# Name: 
+# Name: Jason Roth
 # Program: SnakeClone
 import time
 import random
@@ -27,6 +27,7 @@ RED       = (255,   0,   0)
 GREEN     = (  0, 255,   0)  
 DARKGREEN = (  0, 155,   0) 
 DARKGRAY  = ( 40,  40,  40)  
+PURPLE = (160, 32, 240)
 BGCOLOR = BLACK  
 
 UP = 'up'  
@@ -53,7 +54,7 @@ def main():
 def showStartScreen():
     print("Start the Snake Game!!!")
                             # Hover over render to see what the params mean
-    instText = BASIC_FONT.render("Use wasd or Arrows to turn.", False, RED, BLACK)
+    instText = BASIC_FONT.render("Use wasd or Arrows to turn.", True, RED, BLACK)
     startText = BASIC_FONT.render("Press Any key to start", True, GREEN, BLACK)
     DISPLAY_SURF.fill(BLACK)
     DISPLAY_SURF.blit(instText, (WINDOW_WIDTH/10, WINDOW_HEIGHT//8))
@@ -93,6 +94,10 @@ def drawApple(appleLocation):
     apple = pygame.Rect(appleLocation[X]*CELL_SIZE, appleLocation[Y]*CELL_SIZE, CELL_SIZE, CELL_SIZE)
     pygame.draw.rect(DISPLAY_SURF, RED, apple)
 
+def drawEVILApple(EVILappleLocation):
+    EVILAPPLE = pygame.Rect(EVILappleLocation[X]*CELL_SIZE, EVILappleLocation[Y]*CELL_SIZE, CELL_SIZE, CELL_SIZE)
+    pygame.draw.rect(DISPLAY_SURF, PURPLE, EVILAPPLE)
+
 
 def drawSnake(snakeCoords):
     for segment in snakeCoords:
@@ -106,6 +111,7 @@ def showGameOverScreen():
     # loop to get player "stuck" on game over
     # break the loop when they prpess a button like the start screen
     while True:
+
         goFont = pygame.font.Font('freesansbold.ttf', 100)
         gameText = goFont.render("Game", True, GREEN, BLACK)
         overText = goFont.render("Over", True, GREEN, BLACK)
@@ -123,6 +129,7 @@ def showGameOverScreen():
                 if event.key == K_ESCAPE:  
                     terminate()
                 # Improve to start game again...
+                return
 
 
 def getRandomLocation(snakeCoords):
@@ -130,8 +137,17 @@ def getRandomLocation(snakeCoords):
     x = random.randint(0, CELL_WIDTH-1)
     y = random.randint(0, CELL_HEIGHT-1)
     # needs to be improved to prevent spawning on top of snake
-
+    if x and y == snakeCoords:
+        x = random.randint(0, CELL_WIDTH-1)
+        y = random.randint(0, CELL_HEIGHT-1)
     return (x, y)
+
+def drawScore(score):
+    goFont = pygame.font.Font('freesansbold.ttf', 20)
+    Score = goFont.render("Score: "  + str(score), True, DARKGREEN, BLACK)
+    DISPLAY_SURF.blit(Score, (WINDOW_WIDTH-100, WINDOW_HEIGHT-50))
+
+    
 
 def runGame():
     startX = CELL_WIDTH // 2
@@ -139,6 +155,8 @@ def runGame():
     snakeCoords = [(startX, startY)]
     direction = random.choice([RIGHT, LEFT, UP, DOWN])
     apple = getRandomLocation(snakeCoords)  # to be implemented
+    EVILAPPLE = getRandomLocation(snakeCoords)
+    score = 0
     
     # Event handling loop
     while True: 
@@ -147,13 +165,13 @@ def runGame():
             if event.type == QUIT:  
                 terminate()   # to be implemented pygame.quit() then sys.exit()
             elif event.type == KEYDOWN: 
-                if (event.key == K_LEFT or event.key == K_a): 
+                if direction != RIGHT and (event.key == K_LEFT or event.key == K_a): 
                     direction = LEFT  
-                elif (event.key == K_RIGHT or event.key == K_d):  
+                elif direction != LEFT and (event.key == K_RIGHT or event.key == K_d):  
                     direction = RIGHT  
-                elif (event.key == K_UP or event.key == K_w):  
+                elif direction != DOWN and (event.key == K_UP or event.key == K_w):  
                     direction = UP  
-                elif (event.key == K_DOWN or event.key == K_s):  
+                elif direction != UP and (event.key == K_DOWN or event.key == K_s):  
                     direction = DOWN 
                 elif event.key == K_ESCAPE:  
                     terminate()
@@ -175,8 +193,27 @@ def runGame():
         snakeCoords.insert(0,newHead)
         # Check for collision If the snake collides what should it do
         #       What is it colliding with ?
+        if snakeCoords[HEAD][X] > CELL_WIDTH or snakeCoords[HEAD][X] < 0:
+            return
+        if snakeCoords[HEAD][Y] > CELL_HEIGHT or snakeCoords[HEAD][Y] < 0:
+            return
+        # check for collision with itself
+        elif snakeCoords[HEAD] in snakeCoords[1:]:
+            return
+        #check for apple collision
+        elif snakeCoords[HEAD] == apple:
+            apple = getRandomLocation(snakeCoords)
+            score += 1
+        else:
+            snakeCoords.pop()
 
-        
+        if snakeCoords[HEAD] == EVILAPPLE:
+            if score < 1:
+                showGameOverScreen()
+            else:
+                EVILAPPLE = getRandomLocation(snakeCoords)
+                score -= 1
+                snakeCoords.pop()
         
         ## ~~~~~End of Logic Section~~~ ##
         
@@ -186,7 +223,8 @@ def runGame():
         drawGrid()
         drawSnake(snakeCoords)
         drawApple(apple)
-        # drawScore 
+        drawEVILApple(EVILAPPLE)
+        drawScore(score)
         
         pygame.display.update()
         FPS_CLOCK.tick(FPS)
